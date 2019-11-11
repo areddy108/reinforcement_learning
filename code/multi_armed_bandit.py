@@ -1,5 +1,5 @@
 import numpy as np
-
+import random
 
 class MultiArmedBandit:
     """
@@ -14,6 +14,37 @@ class MultiArmedBandit:
         self.epsilon = epsilon
 
     def fit(self, env, steps=1000):
+        selections = np.zeros(env.action_space.n)
+        Q = np.zeros([env.observation_space.n, env.action_space.n])
+        s = np.floor(steps / 100)
+        j = 0
+        rewards = np.zeros(100)
+        for i in range(steps):
+            done = False
+            G, reward = 0, 0
+            state = env.reset()
+
+            while done != True:
+                epsilon = self.epsilon
+                x = random.randint(1, steps + 1)
+                if (x < epsilon * steps):
+                    action = env.action_space.sample()
+                elif(np.all(Q[state])):
+                    action = random.randint(0, env.action_space.n-1)
+                else:
+                    action = np.argmax(Q[state])
+                selections[action] = selections[action] + 1
+                alpha = 1 / selections[action]
+                state2, reward, done, info = env.step(action)
+                Q[state, action] += alpha * (reward - Q[state,action])
+                state = state2
+                G = G + reward
+
+            rewards[j] += G
+            if (i + 1 % s == 0):
+                j += 1
+        rewards = rewards / s
+        return Q, rewards
         """
         Trains the MultiArmedBandit on an OpenAI Gym environment.
 
@@ -59,9 +90,25 @@ class MultiArmedBandit:
             average reward over the first s steps, rewards[1] should contain
             the average reward over the next s steps, etc.
         """
-        raise NotImplementedError()
+        #raise NotImplementedError()
 
     def predict(self, env, state_action_values):
+
+        state = env.reset()
+        states = []
+        done = False
+        actions = []
+        rewards = []
+        while(done != True):
+            action = np.argmax(state_action_values[state])
+            actions.append(action)
+            state, reward, done, info = env.step(action)
+            print(state)
+            states.append(state)
+            rewards.append(reward)
+
+        return np.asarray(states), np.asarray(actions), np.asarray(rewards)
+
         """
         Runs prediction on an OpenAI environment using the policy defined by
         the MultiArmedBandit algorithm and the state action values. Predictions
@@ -94,4 +141,4 @@ class MultiArmedBandit:
             over the course  of the episode. Should be of length K, where K is
             the number of steps taken within the episode.
         """
-        raise NotImplementedError()
+        #raise NotImplementedError()

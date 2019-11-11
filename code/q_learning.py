@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 
 class QLearning:
@@ -20,6 +21,36 @@ class QLearning:
         self.adaptive = adaptive
 
     def fit(self, env, steps=1000):
+        selections = np.zeros(env.action_space.n)
+        Q = np.zeros([env.observation_space.n, env.action_space.n])
+        s = np.floor(steps/100)
+        j = 0
+        rewards = np.zeros(100)
+        for i in range(steps):
+            done = False
+            G, reward = 0, 0
+            state = env.reset()
+
+            while done != True:
+                epsilon = self._get_epsilon(i/steps)
+                x = random.randint(1, steps+1)
+                if(x < epsilon * steps):
+                     action = env.action_space.sample()
+                else:
+                    action = np.argmax(Q[state])
+                selections[action] = selections[action] + 1
+                alpha = 1 / selections[action ]
+                state2, reward, done, info = env.step(action)
+                Q[state, action] += alpha*(reward + self.discount*np.max(Q[state2]) - Q[state, action])
+                state = state2
+                G = G + reward
+
+            rewards[j] += G
+            if (i+1 % s == 0):
+                j += 1
+        rewards = rewards / s
+        return Q, rewards
+
         """
         Trains an agent using Q-Learning on an OpenAI Gym Environment.
 
@@ -68,9 +99,23 @@ class QLearning:
             average reward over the first s steps, rewards[1] should contain
             the average reward over the next s steps, etc.
         """
-        raise NotImplementedError()
 
     def predict(self, env, state_action_values):
+        state = env.reset()
+        states = []
+        done = False
+        actions = []
+        rewards = []
+        while(done != True):
+            action = np.argmax(state_action_values[state])
+            actions.append(action)
+            state, reward, done, info = env.step(action)
+            print(state)
+            states.append(state)
+            rewards.append(reward)
+
+        return np.asarray(states), np.asarray(actions), np.asarray(rewards)
+
         """
         Runs prediction on an OpenAI environment using the policy defined by
         the QLearning algorithm and the state action values. Predictions are
@@ -103,7 +148,7 @@ class QLearning:
             over the course  of the episode. Should be of length K, where K is
             the number of steps taken within the episode.
         """
-        raise NotImplementedError()
+        #raise NotImplementedError()
 
     def _get_epsilon(self, progress):
         """
@@ -117,6 +162,8 @@ class QLearning:
         return self._adaptive_epsilon(progress) if self.adaptive else self.epsilon
 
     def _adaptive_epsilon(self, progress):
+        epsilon = (1-progress)*self.epsilon;
+        return epsilon
         """
         An adaptive policy for epsilon-greedy reinforcement learning. Returns
         the current epsilon value given the learner's progress. This allows for
@@ -129,4 +176,4 @@ class QLearning:
             progress - (float) A value between 0 and 1 that indicates the
                 training progess. Equivalent to current_step / steps.
         """
-        raise NotImplementedError()
+
