@@ -2,6 +2,7 @@ import gym
 import numpy as np
 
 
+
 def test_bandit_slots():
     """
     Tests that the MultiArmedBandit implementation successfully finds the slot

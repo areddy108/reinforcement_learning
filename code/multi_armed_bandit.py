@@ -13,7 +13,8 @@ class MultiArmedBandit:
     def __init__(self, epsilon=0.2):
         self.epsilon = epsilon
 
-    def fit(self, env, steps=1000):
+    def fit(self, env, steps=10000):
+        env.reset()
         selections = np.zeros(env.action_space.n)
         Q = np.zeros([env.observation_space.n, env.action_space.n])
         s = np.floor(steps / 100)
@@ -29,19 +30,19 @@ class MultiArmedBandit:
                 x = random.randint(1, steps + 1)
                 if (x < epsilon * steps):
                     action = env.action_space.sample()
-                elif(np.all(Q[state])):
+                elif (all(i == Q[state, 0] for i in Q[state])):
                     action = random.randint(0, env.action_space.n-1)
                 else:
-                    action = np.argmax(Q[state])
+                    action = np.argmax(Q)
                 selections[action] = selections[action] + 1
                 alpha = 1 / selections[action]
-                state2, reward, done, info = env.step(action)
-                Q[state, action] += alpha * (reward - Q[state,action])
-                state = state2
+                state, reward, done, info = env.step(action)
+
+                Q[:, action] += alpha * (reward - Q[0, action])
                 G = G + reward
 
             rewards[j] += G
-            if (i + 1 % s == 0):
+            if ((i + 1) % s == 0):
                 j += 1
         rewards = rewards / s
         return Q, rewards

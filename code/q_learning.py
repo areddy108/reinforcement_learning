@@ -21,7 +21,7 @@ class QLearning:
         self.adaptive = adaptive
 
     def fit(self, env, steps=1000):
-        selections = np.zeros(env.action_space.n)
+        selections = np.zeros([env.observation_space.n, env.action_space.n])
         Q = np.zeros([env.observation_space.n, env.action_space.n])
         s = np.floor(steps/100)
         j = 0
@@ -36,18 +36,21 @@ class QLearning:
                 x = random.randint(1, steps+1)
                 if(x < epsilon * steps):
                      action = env.action_space.sample()
+                elif (all(i == Q[state, 0] for i in Q[state] )):
+                    action = random.randint(0, env.action_space.n - 1)
                 else:
                     action = np.argmax(Q[state])
-                selections[action] = selections[action] + 1
-                alpha = 1 / selections[action ]
+                selections[state, action] = selections[state, action] + 1
+                alpha = 1 / selections[state, action]
                 state2, reward, done, info = env.step(action)
                 Q[state, action] += alpha*(reward + self.discount*np.max(Q[state2]) - Q[state, action])
                 state = state2
                 G = G + reward
 
             rewards[j] += G
-            if (i+1 % s == 0):
+            if ((i+1) % s == 0):
                 j += 1
+        #print(rewards)
         rewards = rewards / s
         return Q, rewards
 
@@ -101,6 +104,7 @@ class QLearning:
         """
 
     def predict(self, env, state_action_values):
+        env.reset()
         state = env.reset()
         states = []
         done = False
@@ -110,7 +114,6 @@ class QLearning:
             action = np.argmax(state_action_values[state])
             actions.append(action)
             state, reward, done, info = env.step(action)
-            print(state)
             states.append(state)
             rewards.append(reward)
 
